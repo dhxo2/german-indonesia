@@ -122,9 +122,15 @@
         <input type="text" id="answer-input" class="input-text" placeholder="Ketik terjemahan di sini...">
         
         <button id="submit-btn" class="btn btn-primary w-full mt-4">Kirim Jawaban</button>
-        <button id="next-btn" class="btn btn-primary w-full mt-4 hidden">Kata Selanjutnya</button>
+        <div class="flex flex-col md:flex-row gap-2 mt-4">
+            <button id="explain-btn" class="btn btn-primary hidden w-full md:w-1/2">✨ Penjelasan</button>
+            <button id="next-btn" class="btn btn-primary hidden w-full md:w-1/2">Kata Selanjutnya</button>
+        </div>
         
         <div id="message" class="mt-4 text-center text-lg font-semibold"></div>
+        <div id="explanation-area" class="mt-4 text-left p-4 rounded-lg bg-gray-100 hidden">
+            <p id="explanation-text" class="text-gray-700"></p>
+        </div>
     </div>
 
     <!-- Area Hasil Permainan -->
@@ -136,6 +142,7 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
     const vocabulary = {
         easy: [
@@ -405,10 +412,13 @@
     const answerInput = document.getElementById('answer-input');
     const submitBtn = document.getElementById('submit-btn');
     const nextBtn = document.getElementById('next-btn');
+    const explainBtn = document.getElementById('explain-btn');
     const messageEl = document.getElementById('message');
     const resultsList = document.getElementById('results-list');
     const downloadImageBtn = document.getElementById('download-image-btn');
     const restartBtn = document.getElementById('restart-btn');
+    const explanationArea = document.getElementById('explanation-area');
+    const explanationText = document.getElementById('explanation-text');
 
     let currentMode = '';
     let currentDifficulty = 'easy';
@@ -416,6 +426,7 @@
     let currentWordIndex = 0;
     let maxQuestions = 0;
     let isShuffled = true;
+    let isLastAnswerCorrect = false;
     let answeredWords = [];
 
     // Fungsi untuk mengacak array
@@ -451,7 +462,9 @@
         answerInput.focus();
         submitBtn.classList.remove('hidden');
         nextBtn.classList.add('hidden');
+        explainBtn.classList.add('hidden');
         showMessage('', '');
+        explanationArea.classList.add('hidden');
     };
 
     const checkAnswer = () => {
@@ -467,6 +480,7 @@
         }
         
         isCorrect = correctAnswers.includes(userAnswer);
+        isLastAnswerCorrect = isCorrect;
 
         answeredWords.push({
             question: currentMode === 'jerman-ke-indo' ? correctWord.german : correctWord.indonesian,
@@ -479,16 +493,99 @@
             showMessage('Benar!', '#0077b6');
             submitBtn.classList.add('hidden');
             nextBtn.classList.remove('hidden');
+            explainBtn.classList.remove('hidden');
         } else {
             showMessage('Salah. Coba lagi.', '#ef4444');
             answerInput.value = '';
             answerInput.focus();
+            explainBtn.classList.remove('hidden');
         }
     };
 
     const nextWord = () => {
         currentWordIndex++;
         displayWord();
+    };
+
+    // Fungsi untuk mendapatkan respons dari Gemini API
+    const generateAIResponse = async () => {
+        const word = currentWords[currentWordIndex];
+        const wordToExplain = currentMode === 'jerman-ke-indo' ? word.german : word.indonesian;
+        const targetLanguage = currentMode === 'jerman-ke-indo' ? 'Indonesia' : 'Jerman';
+        const sourceLanguage = currentMode === 'jerman-ke-indo' ? 'Jerman' : 'Indonesia';
+        
+        let prompt;
+        let systemPrompt;
+        let responseType;
+
+        if (isLastAnswerCorrect) {
+            responseType = 'explanation';
+            systemPrompt = "Bertindak sebagai tutor bahasa yang ramah dan to the point. Berikan 2 contoh kalimat yang relevan dalam bahasa asli dan terjemahannya. Format respons sebagai daftar poin tanpa penjelasan tambahan atau pengenalan. Contoh: - Kalimat Jerman. -> Kalimat Indonesia.";
+            prompt = `Berikan dua contoh kalimat yang bisa dipakai untuk kata "${wordToExplain}" dalam bahasa ${sourceLanguage} dan terjemahannya dalam bahasa ${targetLanguage}.`;
+        } else {
+            responseType = 'keywords';
+            systemPrompt = "Bertindak sebagai pembimbing bahasa yang membantu. Berikan 3-5 kata kunci yang paling relevan dengan terjemahan yang benar. Jangan berikan terjemahan langsung atau penjelasan. Pisahkan kata kunci dengan koma.";
+            prompt = `Berikan 3-5 kata kunci yang paling relevan untuk kata "${wordToExplain}" dalam bahasa ${targetLanguage}.`;
+        }
+
+        explanationText.textContent = "Menghasilkan respons... (mohon tunggu)";
+        explanationArea.classList.remove('hidden');
+        submitBtn.disabled = true;
+        nextBtn.disabled = true;
+        explainBtn.disabled = true;
+
+        const apiKey = "AIzaSyCMkiZ3xG8K9E67CBL5-v6hpf8DNeovpys";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: {
+                parts: [{ text: systemPrompt }]
+            },
+        };
+
+        let response;
+        let retries = 0;
+        const maxRetries = 3;
+        const baseDelay = 1000;
+
+        while (retries < maxRetries) {
+            try {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.status === 429) {
+                    retries++;
+                    const delay = baseDelay * Math.pow(2, retries);
+                    await new Promise(res => setTimeout(res, delay));
+                    continue;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (text) {
+                    explanationText.innerHTML = `<strong>${responseType === 'explanation' ? 'Penjelasan' : 'Kata Kunci'}:</strong><br>${text.replace(/-/g, '').replace(/(\n)/g, '<br>')}`;
+                } else {
+                    explanationText.textContent = "Maaf, gagal mendapatkan penjelasan.";
+                }
+                break; // Keluar dari loop jika berhasil
+            } catch (error) {
+                console.error('API Error:', error);
+                explanationText.textContent = "Maaf, terjadi kesalahan saat menghubungi API. Silakan coba lagi.";
+                break; // Keluar dari loop pada kesalahan non-retriable
+            }
+        }
+        submitBtn.disabled = false;
+        nextBtn.disabled = false;
+        explainBtn.disabled = false;
     };
 
     const showResults = () => {
@@ -609,6 +706,7 @@
 
     submitBtn.addEventListener('click', checkAnswer);
     nextBtn.addEventListener('click', nextWord);
+    explainBtn.addEventListener('click', generateAIResponse);
     answerInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             if (!submitBtn.classList.contains('hidden')) {
