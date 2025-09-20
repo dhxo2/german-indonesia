@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kosakata Jerman-Indonesia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #a8e6ff 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #b3e5fc;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #00BFFF;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1E90FF;
+        }
+        .btn-difficulty, .btn-question-count, .btn-shuffle {
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            background-color: #f0f8ff;
+            color: #4a5568;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .btn-difficulty.active, .btn-question-count.active, .btn-shuffle.active {
+            background-color: #0077b6;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .btn-difficulty:hover:not(.active), .btn-question-count:hover:not(.active), .btn-shuffle:hover:not(.active) {
+            background-color: #e3f2fd;
+        }
+        .input-text {
+            border: 2px solid #87CEFA;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            width: 100%;
+            margin-top: 1rem;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .input-text:focus {
+            outline: none;
+            border-color: #1E90FF;
+            box-shadow: 0 0 5px rgba(30, 144, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">Game Kosakata</h1>
+    <p id="game-subtitle" class="text-gray-600 mb-6">Pilih mode permainan Anda.</p>
+
+    <!-- Pilihan Mode Permainan -->
+    <div id="mode-selection">
+        <button id="jerman-ke-indo-btn" class="btn btn-primary">Jerman → Indonesia</button>
+        <button id="indo-ke-jerman-btn" class="btn btn-primary mt-4">Indonesia → Jerman</button>
+    </div>
+
+    <!-- Pilihan Acak/Tidak Acak -->
+    <div id="shuffle-selection" class="mb-6 hidden">
+        <p class="text-gray-700 mb-2">Pilih urutan soal:</p>
+        <button id="shuffle-on-btn" class="btn-shuffle active">Acak</button>
+        <button id="shuffle-off-btn" class="btn-shuffle">Tidak Acak</button>
+    </div>
+
+    <!-- Pilihan Jumlah Soal -->
+    <div id="question-selection" class="mb-6 hidden">
+        <p class="text-gray-700 mb-2">Pilih Jumlah Soal:</p>
+        <button id="q5-btn" class="btn-question-count">5</button>
+        <button id="q15-btn" class="btn-question-count">15</button>
+        <button id="q25-btn" class="btn-question-count">25</button>
+        <button id="qall-btn" class="btn-question-count">Semua</button>
+    </div>
+
+    <!-- Pilihan Tingkat Kesulitan -->
+    <div id="difficulty-selection" class="mb-6 hidden">
+        <p class="text-gray-700 mb-2">Pilih Tingkat Kesulitan:</p>
+        <button id="easy-btn" class="btn-difficulty active">Mudah</button>
+        <button id="medium-btn" class="btn-difficulty">Sedang</button>
+        <button id="hard-btn" class="btn-difficulty">Sulit</button>
+    </div>
+
+    <!-- Area Permainan -->
+    <div id="game-area" class="hidden">
+        <div class="bg-blue-50 p-6 rounded-lg mb-6 border border-blue-200">
+            <p id="word-to-translate" class="text-4xl font-bold text-blue-800"></p>
+        </div>
+        
+        <input type="text" id="answer-input" class="input-text" placeholder="Ketik terjemahan di sini...">
+        
+        <button id="submit-btn" class="btn btn-primary w-full mt-4">Kirim Jawaban</button>
+        <button id="next-btn" class="btn btn-primary w-full mt-4 hidden">Kata Selanjutnya</button>
+        
+        <div id="message" class="mt-4 text-center text-lg font-semibold"></div>
+    </div>
+
+    <!-- Area Hasil Permainan -->
+    <div id="results-area" class="hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Hasil Kuis</h2>
+        <ul id="results-list" class="text-left mb-6 space-y-2"></ul>
+        <button id="download-image-btn" class="btn btn-primary mt-4">Unduh Hasil (Gambar)</button>
+        <button id="restart-btn" class="btn btn-primary mt-4">Kembali ke Beranda</button>
+    </div>
+</div>
+
+<script>
+    const vocabulary = {
+        easy: [
+            { german: 'Hallo', indonesian: 'Halo' },
+            { german: 'Guten Morgen', indonesian: 'Selamat pagi' },
+            { german: 'Danke', indonesian: 'Terima kasih' },
+            { german: 'Bitte', indonesian: 'Silakan/Tolong' },
+            { german: 'Ja', indonesian: 'Ya' },
+            { german: 'Nein', indonesian: 'Tidak' },
+            { german: 'Tschüss', indonesian: 'Sampai jumpa' },
+            { german: 'Buch', indonesian: 'Buku' },
+            { german: 'Hund', indonesian: 'Anjing' },
+            { german: 'Katze', indonesian: 'Kucing' },
+            { german: 'Wasser', indonesian: 'Air' },
+            { german: 'Essen', indonesian: 'Makanan' },
+            { german: 'Haus', indonesian: 'Rumah' },
+            { german: 'Auto', indonesian: 'Mobil' },
+            { german: 'Fahrrad', indonesian: 'Sepeda' },
+            { german: 'Uhr', indonesian: 'Jam' },
+            { german: 'Stift', indonesian: 'Pensil' },
+            { german: 'Baum', indonesian: 'Pohon' },
+            { german: 'Sonne', indonesian: 'Matahari' },
+            { german: 'Mond', indonesian: 'Bulan' },
+            { german: 'und', indonesian: 'dan' },
+            { german: 'oder', indonesian: 'atau' },
+            { german: 'aber', indonesian: 'tapi' },
+            { german: 'weil', indonesian: 'karena' },
+            { german: 'dass', indonesian: 'bahwa' },
+            { german: 'in', indonesian: 'di' },
+            { german: 'auf', indonesian: 'di atas' },
+            { german: 'an', indonesian: 'di/pada' },
+            { german: 'mit', indonesian: 'dengan' },
+            { german: 'von', indonesian: 'dari' },
+            { german: 'für', indonesian: 'untuk' },
+            { german: 'aus', indonesian: 'dari/keluar' },
+            { german: 'bei', indonesian: 'di (tempat)' },
+            { german: 'nach', indonesian: 'ke/setelah' },
+            { german: 'über', indonesian: 'tentang/di atas' },
+            { german: 'unter', indonesian: 'di bawah' },
+            { german: 'vor', indonesian: 'sebelum/di depan' },
+            { german: 'hinter', indonesian: 'di belakang' },
+            { german: 'zwischen', indonesian: 'di antara' },
+            { german: 'ohne', indonesian: 'tanpa' },
+            { german: 'gegen', indonesian: 'melawan/sekitar' },
+            { german: 'ich', indonesian: 'saya' },
+            { german: 'du', indonesian: 'kamu' },
+            { german: 'er', indonesian: 'dia (laki-laki)' },
+            { german: 'sie', indonesian: 'dia/perempuan; mereka' },
+            { german: 'es', indonesian: 'itu' },
+            { german: 'wir', indonesian: 'kami/kita' },
+            { german: 'ihr', indonesian: 'kalian' },
+            { german: 'Sie', indonesian: 'Anda' },
+            { german: 'mein', indonesian: 'milik saya' },
+            { german: 'dein', indonesian: 'milikmu' },
+            { german: 'sein', indonesian: 'miliknya (laki-laki)' },
+            { german: 'ihr (Possessiv)', indonesian: 'miliknya (perempuan)' },
+            { german: 'unser', indonesian: 'milik kami' },
+            { german: 'euer', indonesian: 'milik kalian' },
+            { german: 'wer', indonesian: 'siapa' },
+            { german: 'was', indonesian: 'apa' },
+            { german: 'wo', indonesian: 'di mana' },
+            { german: 'wann', indonesian: 'kapan' },
+            { german: 'warum', indonesian: 'mengapa' },
+            { german: 'wie', indonesian: 'bagaimana' },
+            { german: 'gut', indonesian: 'baik' },
+            { german: 'schlecht', indonesian: 'buruk' },
+            { german: 'neu', indonesian: 'baru' },
+            { german: 'alt', indonesian: 'tua/lama' },
+            { german: 'groß', indonesian: 'besar/tinggi' },
+            { german: 'klein', indonesian: 'kecil' },
+            { german: 'heiß', indonesian: 'panas' },
+            { german: 'kalt', indonesian: 'dingin' },
+            { german: 'schön', indonesian: 'indah/bagus' },
+            { german: 'richtig', indonesian: 'benar' },
+            { german: 'falsch', indonesian: 'salah' },
+            { german: 'Brot', indonesian: 'Roti' },
+            { german: 'Milch', indonesian: 'Susu' },
+            { german: 'Schlafen', indonesian: 'Tidur' },
+            { german: 'Lachen', indonesian: 'Tertawa' },
+            { german: 'Wein', indonesian: 'Anggur' },
+            { german: 'Apfel', indonesian: 'Apel' },
+            { german: 'Banane', indonesian: 'Pisang' },
+            { german: 'Freundin', indonesian: 'Teman perempuan' },
+            { german: 'Tag', indonesian: 'Hari' },
+            { german: 'Nacht', indonesian: 'Malam' },
+            { german: 'Morgen', indonesian: 'Pagi' },
+            { german: 'Abend', indonesian: 'Malam hari' },
+            { german: 'Eins', indonesian: 'Satu' },
+            { german: 'Zwei', indonesian: 'Dua' },
+            { german: 'Drei', indonesian: 'Tiga' },
+            { german: 'Vier', indonesian: 'Empat' },
+            { german: 'Fünf', indonesian: 'Lima' },
+        ],
+        medium: [
+            { german: 'Schwierigkeit', indonesian: 'Kesulitan' },
+            { german: 'Sprache', indonesian: 'Bahasa' },
+            { german: 'Wörterbuch', indonesian: 'Kamus' },
+            { german: 'Verständnis', indonesian: 'Pemahaman' },
+            { german: 'Computer', indonesian: 'Komputer' },
+            { german: 'Fenster', indonesian: 'Jendela' },
+            { german: 'Tisch', indonesian: 'Meja' },
+            { german: 'Stuhl', indonesian: 'Kursi' },
+            { german: 'Schule', indonesian: 'Sekolah' },
+            { german: 'Arbeit', indonesian: 'Pekerjaan' },
+            { german: 'Freund', indonesian: 'Teman' },
+            { german: 'Familie', indonesian: 'Keluarga' },
+            { german: 'Glücklich', indonesian: 'Senang' },
+            { german: 'Traurig', indonesian: 'Sedih' },
+            { german: 'Groß', indonesian: 'Besar' },
+            { german: 'Wetter', indonesian: 'Cuaca' },
+            { german: 'Stadt', indonesian: 'Kota' },
+            { german: 'Straße', indonesian: 'Jalan' },
+            { german: 'Flugzeug', indonesian: 'Pesawat' },
+            { german: 'Krankenhaus', indonesian: 'Rumah sakit' },
+            { german: 'Universum', indonesian: 'Alam semesta' },
+            { german: 'Entscheidung', indonesian: 'Keputusan' },
+            { german: 'Reise', indonesian: 'Perjalanan' },
+            { german: 'Gedanke', indonesian: 'Pikiran' },
+            { german: 'Möglichkeit', indonesian: 'Kemungkinan' },
+            { german: 'heute', indonesian: 'hari ini' },
+            { german: 'gestern', indonesian: 'kemarin' },
+            { german: 'morgen', indonesian: 'besok' },
+            { german: 'immer', indonesian: 'selalu' },
+            { german: 'nie', indonesian: 'tidak pernah' },
+            { german: 'oft', indonesian: 'sering' },
+            { german: 'manchmal', indonesian: 'kadang-kadang' },
+            { german: 'selten', indonesian: 'jarang' },
+            { german: 'schon', indonesian: 'sudah' },
+            { german: 'noch', indonesian: 'masih' },
+            { german: 'nur', indonesian: 'hanya' },
+            { german: 'auch', indonesian: 'juga' },
+            { german: 'vielleicht', indonesian: 'mungkin' },
+            { german: 'wirklich', indonesian: 'sungguh' },
+            { german: 'genau', indonesian: 'tepat' },
+            { german: 'leicht', indonesian: 'mudah/ringan' },
+            { german: 'schwer', indonesian: 'sulit/berat' },
+            { german: 'teuer', indonesian: 'mahal' },
+            { german: 'billig', indonesian: 'murah' },
+            { german: 'mehr', indonesian: 'lebih/banyak' },
+            { german: 'weniger', indonesian: 'lebih sedikit' },
+            { german: 'gleich', indonesian: 'segera/sama' },
+            { german: 'anders', indonesian: 'berbeda' },
+            { german: 'essen', indonesian: 'makan' },
+            { german: 'trinken', indonesian: 'minum' },
+            { german: 'gehen', indonesian: 'pergi' },
+            { german: 'kommen', indonesian: 'datang' },
+            { german: 'sehen', indonesian: 'melihat' },
+            { german: 'sprechen', indonesian: 'berbicara' },
+            { german: 'lesen', indonesian: 'membaca' },
+            { german: 'schreiben', indonesian: 'menulis' },
+            { german: 'machen', indonesian: 'melakukan/membuat' },
+            { german: 'nehmen', indonesian: 'mengambil' },
+            { german: 'geben', indonesian: 'memberi' },
+            { german: 'finden', indonesian: 'menemukan' },
+            { german: 'denken', indonesian: 'berpikir' },
+            { german: 'wissen', indonesian: 'tahu' },
+            { german: 'kennen', indonesian: 'kenal' },
+            { german: 'lieben', indonesian: 'mencintai' },
+            { german: 'mögen', indonesian: 'suka' },
+            { german: 'arbeiten', indonesian: 'bekerja' },
+            { german: 'spielen', indonesian: 'bermain' },
+            { german: 'brauchen', indonesian: 'butuh' },
+            { german: 'fragen', indonesian: 'bertanya' },
+            { german: 'antworten', indonesian: 'menjawab' },
+            { german: 'beginnen', indonesian: 'mulai' },
+            { german: 'enden', indonesian: 'berakhir' },
+            { german: 'Verschieden', indonesian: 'Berbeda' },
+            { german: 'Wichtig', indonesian: 'Penting' },
+            { german: 'Möglich', indonesian: 'Mungkin' },
+            { german: 'Niemals', indonesian: 'Tidak pernah' },
+            { german: 'Bald', indonesian: 'Segera' },
+            { german: 'Spät', indonesian: 'Terlambat' },
+            { german: 'Früh', indonesian: 'Awal' },
+            { german: 'Helfen', indonesian: 'Membantu' },
+            { german: 'Sprechen', indonesian: 'Berbicara' },
+            { german: 'Verstehen', indonesian: 'Mengerti' },
+            { german: 'Erinnern', indonesian: 'Mengingat' },
+            { german: 'Lernen', indonesian: 'Belajar' },
+            { german: 'Küche', indonesian: 'Dapur' },
+            { german: 'Schlafzimmer', indonesian: 'Kamar tidur' },
+            { german: 'Wohnzimmer', indonesian: 'Ruang tamu' },
+            { german: 'Garten', indonesian: 'Taman' },
+            { german: 'Zeitung', indonesian: 'Koran' },
+            { german: 'Büro', indonesian: 'Kantor' },
+            { german: 'Kaffee', indonesian: 'Kopi' },
+            { german: 'Tee', indonesian: 'Teh' },
+            { german: 'sehen', indonesian: 'melihat/menonton' },
+            { german: 'fahren', indonesian: 'mengemudi/naik' }
+        ],
+        hard: [
+            { german: 'Wissenschaft', indonesian: 'Ilmu pengetahuan' },
+            { german: 'Gesundheit', indonesian: 'Kesehatan' },
+            { german: 'Gesellschaft', indonesian: 'Masyarakat' },
+            { german: 'Entwicklung', indonesian: 'Perkembangan' },
+            { german: 'Verantwortung', indonesian: 'Tanggung jawab' },
+            { german: 'Möglichkeiten', indonesian: 'Kemungkinan' },
+            { german: 'Gerechtigkeit', indonesian: 'Keadilan' },
+            { german: 'Regierung', indonesian: 'Pemerintahan' },
+            { german: 'Wirtschaft', indonesian: 'Ekonomi' },
+            { german: 'Umwelt', indonesian: 'Lingkungan' },
+            { german: 'Kultur', indonesian: 'Budaya' },
+            { german: 'Technologie', indonesian: 'Teknologi' },
+            { german: 'Herausforderung', indonesian: 'Tantangan' },
+            { german: 'Unabhängigkeit', indonesian: 'Kemandirian' },
+            { german: 'Kommunikation', indonesian: 'Komunikasi' },
+            { german: 'Wiederherstellung', indonesian: 'Pemulihan' },
+            { german: 'Zusammenarbeit', indonesian: 'Kolaborasi' },
+            { german: 'Nachhaltigkeit', indonesian: 'Keberlanjutan' },
+            { german: 'Demokratie', indonesian: 'Demokrasi' },
+            { german: 'Globalisierung', indonesian: 'Globalisasi' },
+            { german: 'Diversität', indonesian: 'Keberagaman' },
+            { german: 'Bedeutung', indonesian: 'Pentingnya' },
+            { german: 'Erfahrung', indonesian: 'Pengalaman' },
+            { german: 'Forschung', indonesian: 'Penelitian' },
+            { german: 'Sicherheit', indonesian: 'Keamanan' },
+            { german: 'während', indonesian: 'selama' },
+            { german: 'trotz', indonesian: 'meskipun' },
+            { german: 'wollen', indonesian: 'ingin' },
+            { german: 'müssen', indonesian: 'harus' },
+            { german: 'dürfen', indonesian: 'boleh' },
+            { german: 'sollen', indonesian: 'sebaiknya' },
+            { german: 'können', indonesian: 'bisa' },
+            { german: 'werden', indonesian: 'menjadi/akan' },
+            { german: 'sein', indonesian: 'adalah/berada' },
+            { german: 'haben', indonesian: 'punya' },
+            { german: 'laufen', indonesian: 'berlari' },
+            { german: 'fahren', indonesian: 'mengemudi/naik' },
+            { german: 'bleiben', indonesian: 'tinggal' },
+            { german: 'fühlen', indonesian: 'merasa' },
+            { german: 'glauben', indonesian: 'percaya' },
+            { german: 'überlegen', indonesian: 'mempertimbangkan' },
+            { german: 'entschuldigung', indonesian: 'maaf/permisi' },
+            { german: 'voraussetzung', indonesian: 'prasyarat' },
+            { german: 'begründung', indonesian: 'alasan/justifikasi' },
+            { german: 'zusammenfassung', indonesian: 'ringkasan' },
+            { german: 'Gesellschaftlich', indonesian: 'Sosial' },
+            { german: 'Wirtschaftlich', indonesian: 'Ekonomi' },
+            { german: 'Kulturell', indonesian: 'Budaya' },
+            { german: 'Entscheiden', indonesian: 'Memutuskan' },
+            { german: 'Verbessern', indonesian: 'Meningkatkan' },
+            { german: 'Entschuldigung', indonesian: 'Permintaan maaf' },
+            { german: 'Entwickeln', indonesian: 'Mengembangkan' },
+            { german: 'Unterschied', indonesian: 'Perbedaan' },
+            { german: 'Beziehung', indonesian: 'Hubungan' },
+            { german: 'Erwartung', indonesian: 'Harapan' },
+            { german: 'Herausforderung', indonesian: 'Tantangan' },
+            { german: 'Möglichkeit', indonesian: 'Kemungkinan' },
+            { german: 'Unternehmen', indonesian: 'Perusahaan' },
+            { german: 'Forschung', indonesian: 'Penelitian' },
+            { german: 'Bildung', indonesian: 'Pendidikan' },
+            { german: 'Geduld', indonesian: 'Kesabaran' },
+            { german: 'Sicherheit', indonesian: 'Keamanan' },
+            { german: 'Politik', indonesian: 'Politik' },
+            { german: 'Vergangenheit', indonesian: 'Masa lalu' },
+            { german: 'Zukunft', indonesian: 'Masa depan' },
+        ],
+    };
+
+    const modeSelection = document.getElementById('mode-selection');
+    const shuffleSelection = document.getElementById('shuffle-selection');
+    const questionSelection = document.getElementById('question-selection');
+    const difficultySelection = document.getElementById('difficulty-selection');
+    const gameArea = document.getElementById('game-area');
+    const resultsArea = document.getElementById('results-area');
+    const gameSubtitle = document.getElementById('game-subtitle');
+    const wordToTranslateEl = document.getElementById('word-to-translate');
+    const answerInput = document.getElementById('answer-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const messageEl = document.getElementById('message');
+    const resultsList = document.getElementById('results-list');
+    const downloadImageBtn = document.getElementById('download-image-btn');
+    const restartBtn = document.getElementById('restart-btn');
+
+    let currentMode = '';
+    let currentDifficulty = 'easy';
+    let currentWords = [];
+    let currentWordIndex = 0;
+    let maxQuestions = 0;
+    let isShuffled = true;
+    let answeredWords = [];
+
+    // Fungsi untuk mengacak array
+    const shuffleArray = (array) => {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    };
+
+    const showMessage = (msg, color) => {
+        messageEl.textContent = msg;
+        messageEl.style.color = color;
+    };
+
+    const displayWord = () => {
+        if (currentWordIndex >= currentWords.length) {
+            showResults();
+            return;
+        }
+        const word = currentWords[currentWordIndex];
+        
+        if (currentMode === 'jerman-ke-indo') {
+            wordToTranslateEl.textContent = word.german;
+            gameSubtitle.textContent = `Terjemahkan kata di bawah ini ke dalam Bahasa Indonesia. (${currentWordIndex + 1}/${currentWords.length})`;
+        } else {
+            wordToTranslateEl.textContent = word.indonesian;
+            gameSubtitle.textContent = `Terjemahkan kata di bawah ini ke dalam Bahasa Jerman. (${currentWordIndex + 1}/${currentWords.length})`;
+        }
+        
+        answerInput.value = '';
+        answerInput.focus();
+        submitBtn.classList.remove('hidden');
+        nextBtn.classList.add('hidden');
+        showMessage('', '');
+    };
+
+    const checkAnswer = () => {
+        const userAnswer = answerInput.value.trim().toLowerCase();
+        const correctWord = currentWords[currentWordIndex];
+        let correctAnswers;
+        let isCorrect;
+
+        if (currentMode === 'jerman-ke-indo') {
+            correctAnswers = correctWord.indonesian.toLowerCase().split('/').map(ans => ans.trim());
+        } else {
+            correctAnswers = correctWord.german.toLowerCase().split('/').map(ans => ans.trim());
+        }
+        
+        isCorrect = correctAnswers.includes(userAnswer);
+
+        answeredWords.push({
+            question: currentMode === 'jerman-ke-indo' ? correctWord.german : correctWord.indonesian,
+            correctAnswer: currentMode === 'jerman-ke-indo' ? correctWord.indonesian : correctWord.german,
+            userAnswer: userAnswer,
+            isCorrect: isCorrect
+        });
+
+        if (isCorrect) {
+            showMessage('Benar!', '#0077b6');
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+        } else {
+            showMessage('Salah. Coba lagi.', '#ef4444');
+            answerInput.value = '';
+            answerInput.focus();
+        }
+    };
+
+    const nextWord = () => {
+        currentWordIndex++;
+        displayWord();
+    };
+
+    const showResults = () => {
+        gameArea.classList.add('hidden');
+        resultsArea.classList.remove('hidden');
+        gameSubtitle.textContent = 'Lihat hasil kuis Anda:';
+        
+        resultsList.innerHTML = ''; 
+        answeredWords.forEach(word => {
+            const listItem = document.createElement('li');
+            listItem.className = 'p-3 rounded-lg flex justify-between items-center text-sm md:text-base';
+            
+            if (word.isCorrect) {
+                listItem.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                listItem.classList.add('bg-red-100', 'text-red-800');
+            }
+
+            const textDiv = document.createElement('div');
+            textDiv.innerHTML = `
+                <strong class="font-bold">${word.question}</strong> → ${word.correctAnswer} <br>
+                Jawaban Anda: <em>${word.userAnswer || '-'}</em>
+            `;
+
+            const statusSpan = document.createElement('span');
+            statusSpan.textContent = word.isCorrect ? 'Benar ✅' : 'Salah ❌';
+            statusSpan.className = 'font-bold';
+
+            listItem.appendChild(textDiv);
+            listItem.appendChild(statusSpan);
+            resultsList.appendChild(listItem);
+        });
+    };
+
+    const resetGame = () => {
+        answeredWords = [];
+        currentWordIndex = 0;
+        resultsArea.classList.add('hidden');
+        gameArea.classList.add('hidden');
+        questionSelection.classList.add('hidden');
+        difficultySelection.classList.add('hidden');
+        shuffleSelection.classList.add('hidden');
+        modeSelection.classList.remove('hidden');
+        gameSubtitle.textContent = 'Pilih mode permainan Anda.';
+    };
+    
+    const startGame = (difficulty, numQuestions) => {
+        const vocabList = [...vocabulary[currentDifficulty]];
+        if (isShuffled) {
+            currentWords = shuffleArray(vocabList);
+        } else {
+            currentWords = vocabList;
+        }
+        
+        if (numQuestions !== 'all') {
+            currentWords = currentWords.slice(0, numQuestions);
+        }
+
+        currentWordIndex = 0;
+        displayWord();
+    };
+
+    // Event listener untuk mode game
+    document.getElementById('jerman-ke-indo-btn').addEventListener('click', () => {
+        currentMode = 'jerman-ke-indo';
+        modeSelection.classList.add('hidden');
+        shuffleSelection.classList.remove('hidden');
+        gameSubtitle.textContent = 'Pilih urutan soal:';
+    });
+
+    document.getElementById('indo-ke-jerman-btn').addEventListener('click', () => {
+        currentMode = 'indo-ke-jerman';
+        modeSelection.classList.add('hidden');
+        shuffleSelection.classList.remove('hidden');
+        gameSubtitle.textContent = 'Pilih urutan soal:';
+    });
+
+    // Event listeners untuk pilihan Acak/Tidak Acak
+    document.getElementById('shuffle-on-btn').addEventListener('click', () => {
+        isShuffled = true;
+        document.getElementById('shuffle-on-btn').classList.add('active');
+        document.getElementById('shuffle-off-btn').classList.remove('active');
+        shuffleSelection.classList.add('hidden');
+        questionSelection.classList.remove('hidden');
+        gameSubtitle.textContent = 'Pilih Jumlah Soal:';
+    });
+
+    document.getElementById('shuffle-off-btn').addEventListener('click', () => {
+        isShuffled = false;
+        document.getElementById('shuffle-on-btn').classList.remove('active');
+        document.getElementById('shuffle-off-btn').classList.add('active');
+        shuffleSelection.classList.add('hidden');
+        questionSelection.classList.remove('hidden');
+        gameSubtitle.textContent = 'Pilih Jumlah Soal:';
+    });
+    
+    // Event listener untuk jumlah soal
+    document.querySelectorAll('.btn-question-count').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const numQuestions = e.target.id === 'qall-btn' ? 'all' : parseInt(e.target.id.replace('q', ''), 10);
+            maxQuestions = numQuestions;
+            questionSelection.classList.add('hidden');
+            difficultySelection.classList.remove('hidden');
+            gameSubtitle.textContent = 'Pilih Tingkat Kesulitan:';
+        });
+    });
+
+    // Event listeners untuk tingkat kesulitan
+    document.querySelectorAll('.btn-difficulty').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.btn-difficulty').forEach(dBtn => dBtn.classList.remove('active'));
+            e.target.classList.add('active');
+            difficultySelection.classList.add('hidden');
+            gameArea.classList.remove('hidden');
+            startGame(e.target.id.replace('-btn', ''), maxQuestions);
+        });
+    });
+
+    submitBtn.addEventListener('click', checkAnswer);
+    nextBtn.addEventListener('click', nextWord);
+    answerInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            if (!submitBtn.classList.contains('hidden')) {
+                checkAnswer();
+            } else if (!nextBtn.classList.contains('hidden')) {
+                nextWord();
+            }
+        }
+    });
+
+    // Event listener untuk tombol unduh gambar
+    downloadImageBtn.addEventListener('click', () => {
+        const element = document.getElementById('results-area');
+        html2canvas(element).then(canvas => {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'Hasil_Kuis_Kosakata_Jerman.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    });
+
+    restartBtn.addEventListener('click', resetGame);
+</script>
+
+</body>
+</html>
